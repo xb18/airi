@@ -16,6 +16,7 @@ import type {
   StageViewSnapshotPayload,
 } from '@proj-airi/stage-shared/godot-stage'
 import type { ServerChannelQrPayload } from '@proj-airi/stage-shared/server-channel-qr'
+import type { VoicevoxEngineRequest, VoicevoxEngineResult } from '@proj-airi/stage-shared/voicevox-engine'
 import type {
   ThreeHitTestReadTracePayload,
   ThreeSceneRenderInfoTracePayload,
@@ -326,6 +327,19 @@ export const electronMcpCallTool = defineInvokeEventa<ElectronMcpCallToolResult,
 export const electronMcpReadConfigText = defineInvokeEventa<ElectronMcpStdioConfigText>('eventa:invoke:electron:mcp:read-config-text')
 export const electronMcpWriteConfigText = defineInvokeEventa<ElectronMcpStdioConfigText, { text: string }>('eventa:invoke:electron:mcp:write-config-text')
 export const electronMcpTestServer = defineInvokeEventa<ElectronMcpStdioTestResult, ElectronMcpStdioTestPayload>('eventa:invoke:electron:mcp:test-server')
+
+/**
+ * Forwards one VOICEVOX-family speech engine request through the main process.
+ *
+ * A packaged renderer loads over `file://` and sends `Origin: null`. Every
+ * engine in the family refuses that origin under its default CORS policy, which
+ * does not restrict the main process.
+ *
+ * The payload names an endpoint, not a path, and the handler resolves it through
+ * a fixed table. This contract forwards no arbitrary request.
+ * `createVoicevoxEngineService` applies a host policy on top.
+ */
+export const electronVoicevoxEngineRequest = defineInvokeEventa<VoicevoxEngineResult, VoicevoxEngineRequest>('eventa:invoke:electron:voicevox-engine:request')
 
 export const widgetsOpenWindow = defineInvokeEventa<void, { id?: string }>('eventa:invoke:electron:windows:widgets:open')
 export const widgetsHideWindow = defineInvokeEventa<void, { id?: string }>('eventa:invoke:electron:windows:widgets:hide')

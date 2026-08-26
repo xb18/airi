@@ -5,10 +5,12 @@ import Tres from '@tresjs/core'
 
 import { autoAnimatePlugin } from '@formkit/auto-animate/vue'
 import { PiniaColada } from '@pinia/colada'
+import { useElectronEventaInvoke } from '@proj-airi/electron-vueuse'
 import { trackButtonPlugin } from '@proj-airi/stage-ui/directives/track-button'
 import { configureAnalyticsAdapter } from '@proj-airi/stage-ui/libs/analytics'
 import { browserAuthorizationHandler, registerAuthorizationHandler } from '@proj-airi/stage-ui/libs/auth'
 import { piniaPluginTracing, setupSynced } from '@proj-airi/stage-ui/libs/pinia'
+import { setVoicevoxEngineTransport } from '@proj-airi/stage-ui/libs/providers/providers/voicevox'
 import { MotionPlugin } from '@vueuse/motion'
 import { createPinia } from 'pinia'
 import { setupLayouts } from 'virtual:generated-layouts'
@@ -18,6 +20,7 @@ import { handleHotUpdate, routes } from 'vue-router/auto-routes'
 
 import App from './App.vue'
 
+import { electronVoicevoxEngineRequest } from '../shared/eventa'
 import { i18n } from './modules/i18n'
 import { resolveRendererWindowContext } from './window-context'
 
@@ -46,6 +49,11 @@ configureAnalyticsAdapter(async (options) => {
   return createPosthogAdapter(options)
 })
 registerAuthorizationHandler(browserAuthorizationHandler)
+
+// Route speech engine traffic through the main process, so a stock engine
+// install works untouched. See `electronVoicevoxEngineRequest` for why.
+const invokeVoicevoxEngineRequest = useElectronEventaInvoke(electronVoicevoxEngineRequest)
+setVoicevoxEngineTransport((request, signal) => invokeVoicevoxEngineRequest(request, { signal }))
 
 const pinia = createPinia()
 const synced = setupSynced({

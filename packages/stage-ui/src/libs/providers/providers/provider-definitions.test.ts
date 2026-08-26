@@ -48,6 +48,9 @@ describe('migrated provider definitions', () => {
       'player2-speech',
       'kokoro-local',
       'google-gemini-audio-speech',
+      'voicevox',
+      'aivis-speech',
+      'voicevox-compatible',
     ]
 
     for (const providerId of providerIds)
