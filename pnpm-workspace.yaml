@@ -195,6 +195,7 @@ catalog:
   '@types/three': ^0.184.0
   '@types/unist': ^3.0.3
   '@types/vscode': ^1.116.0
+  '@types/w3c-web-hid': ^1.0.7
   '@types/whatwg-mimetype': ^5.0.0
   '@types/ws': ^8.18.1
   '@types/xast': ^2.0.4
@@ -262,6 +263,7 @@ catalog:
   defu: ^6.1.7
   destr: ^2.0.5
   discord.js: ^14.26.3
+  dockview-vue: ^8.2.0
   dompurify: ^3.4.0
   driver.js: ^1.4.0
   drizzle-kit: ^0.31.10

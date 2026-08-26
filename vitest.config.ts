@@ -11,6 +11,8 @@ export default defineConfig({
       'packages/ccc',
       'packages/core-agent',
       'packages/i18n',
+      'packages/input-gamepad',
+      'packages/input-playstation-dualsense-5',
       'packages/better-ws',
       'packages/plugin-sdk',
       'packages/plugin-sdk-tamagotchi',

@@ -477,6 +477,9 @@ catalogs:
     '@types/vscode':
       specifier: ^1.116.0
       version: 1.116.0
+    '@types/w3c-web-hid':
+      specifier: ^1.0.7
+      version: 1.0.7
     '@types/whatwg-mimetype':
       specifier: ^5.0.0
       version: 5.0.0
@@ -678,6 +681,9 @@ catalogs:
     discord.js:
       specifier: ^14.26.3
       version: 14.26.3
+    dockview-vue:
+      specifier: ^8.2.0
+      version: 8.2.0
     dompurify:
       specifier: ^3.4.0
       version: 3.4.0
@@ -1912,6 +1918,9 @@ importers:
       '@proj-airi/i18n':
         specifier: workspace:^
         version: link:../../packages/i18n
+      '@proj-airi/input-gamepad':
+        specifier: workspace:^
+        version: link:../../packages/input-gamepad
       '@proj-airi/pipelines-audio':
         specifier: workspace:^
         version: link:../../packages/pipelines-audio
@@ -2041,6 +2050,9 @@ importers:
       destr:
         specifier: 'catalog:'
         version: 2.0.5
+      dockview-vue:
+        specifier: 'catalog:'
+        version: 8.2.0(vue@3.5.32(typescript@5.9.3))
       dompurify:
         specifier: 'catalog:'
         version: 3.4.0
@@ -2249,6 +2261,9 @@ importers:
       '@types/culori':
         specifier: 'catalog:'
         version: 4.0.1
+      '@types/d3':
+        specifier: 'catalog:'
+        version: 7.4.3
       '@types/nprogress':
         specifier: 'catalog:'
         version: 0.2.3
@@ -3737,6 +3752,14 @@ importers:
       yaml:
         specifier: 'catalog:'
         version: 2.8.3
+
+  packages/input-gamepad: {}
+
+  packages/input-playstation-dualsense-5:
+    dependencies:
+      '@types/w3c-web-hid':
+        specifier: 'catalog:'
+        version: 1.0.7
 
   packages/memory-pgvector:
     dependencies:
@@ -11552,6 +11575,9 @@ packages:
   '@types/vscode@1.116.0':
     resolution: {integrity: sha512-sYHp4MO6BqJ2PD7Hjt0hlIS3tMaYsVPJrd0RUjDJ8HtOYnyJIEej0bLSccM8rE77WrC+Xox/kdBwEFDO8MsxNA==}
 
+  '@types/w3c-web-hid@1.0.7':
+    resolution: {integrity: sha512-/y97wBH7fYB5vKoDIn11O1ZDMNFLCAVqZ9af0OWDN7VSO2ClErEN2HlGbBuPgHBTUmZOVx1og2ZHX1U2gEJM4Q==}
+
   '@types/web-bluetooth@0.0.20':
     resolution: {integrity: sha512-g9gZnnXVq7gM7v3tJCWV/qw7w+KeOlSHAhgF9RytFyifW6AF61hdT2ucrYhPq9hLs5JIryeupHV3qGk95dH9ow==}
 
@@ -13951,6 +13977,17 @@ packages:
     engines: {node: '>=8'}
     os: [darwin]
     hasBin: true
+
+  dockview-core@8.2.0:
+    resolution: {integrity: sha512-+L+xdvmO1b4in8rVkFtQM13IkPDKqDLoHJvq5HtAIsMxsPptSVveKeViYBqquaoHF+t0xb9f6692gTeKnjCKGw==}
+
+  dockview-vue@8.2.0:
+    resolution: {integrity: sha512-Mr5lFrDJ4cD6IoDz7fPo7TE/lQ8h7ed2gP6Cb0Ii460nw1ES94iEx/HBIYO1HlM0vdU052/d5aCzlky4jauF1Q==}
+    peerDependencies:
+      vue: ^3.4.0
+
+  dockview@8.2.0:
+    resolution: {integrity: sha512-Jj+fnFWSrdEhF+1DmpGNYjEvyqf7J0FHkDqsD98wL4WOYB2CSKavDCL49B3LHIGYvWNN7Q1O1j4p7Pts38CM5A==}
 
   dom-serializer@1.4.1:
     resolution: {integrity: sha512-VHwB3KfrcOOkelEG2ZOfxqLZdfkil8PtJi4P8N2MMXucZq2yLp75ClViUlOVwyoHEDjYU433Aq+5zWP61+RGag==}
@@ -26190,6 +26227,8 @@ snapshots:
 
   '@types/vscode@1.116.0': {}
 
+  '@types/w3c-web-hid@1.0.7': {}
+
   '@types/web-bluetooth@0.0.20': {}
 
   '@types/web-bluetooth@0.0.21': {}
@@ -29176,6 +29215,17 @@ snapshots:
       smart-buffer: 4.2.0
       verror: 1.10.1
     optional: true
+
+  dockview-core@8.2.0: {}
+
+  dockview-vue@8.2.0(vue@3.5.32(typescript@5.9.3)):
+    dependencies:
+      dockview: 8.2.0
+      vue: 3.5.32(typescript@5.9.3)
+
+  dockview@8.2.0:
+    dependencies:
+      dockview-core: 8.2.0
 
   dom-serializer@1.4.1:
     dependencies:
