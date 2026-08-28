@@ -50,48 +50,48 @@ devtools:
     context-flow:
       title: Context Flow
     editor:
-      title: AIRI 编辑器
-      description: 打开独立的 AIRI 编辑器窗口
-      button: 打开编辑器
+      title: AIRI Editor
+      description: Open the standalone AIRI Editor window
+      button: Open Editor
     lag-visualizer:
       title: Lag 可视化
     performance-visualizer:
       title: 性能可视化
-      description: 检查实时性能指标和运行时诊断数据
+      description: Inspect live performance metrics and runtime diagnostics
       controls:
         enable-all:
-          label: 启用所有可用指标
-          description: 启用当前浏览器支持的所有指标。
-        start-recording: 开始录制
-        stop-recording: 停止录制（{seconds} 秒）
-        export-last-recording: 导出上次录制
+          label: Enable all available metrics
+          description: Enable each metric that this browser supports.
+        start-recording: Start recording
+        stop-recording: Stop recording ({seconds}s)
+        export-last-recording: Export last recording
       metrics:
         fps:
           label: FPS
-          description: 最近 10 秒内的每秒帧数。
+          description: Frames per second during the last 10 seconds.
         frame-duration:
-          label: 帧时间（毫秒）
-          description: 最近 10 秒内动画帧之间的时间。
+          label: Frame time (ms)
+          description: Time between animation frames during the last 10 seconds.
         long-task:
-          label: 长任务
-          description: 耗时至少 50 毫秒的主线程任务。
-          unsupported: 当前浏览器不提供长任务计时。
+          label: Long tasks
+          description: Main-thread tasks that take at least 50 ms.
+          unsupported: This browser does not expose long-task timing.
         memory:
-          label: JS 堆（MB）
-          description: Chromium performance.memory API 提供的 JavaScript 堆用量。
-          unsupported: 当前浏览器不提供 JavaScript 堆用量。
+          label: JS heap (MB)
+          description: JavaScript heap usage from Chromium's performance.memory API.
+          unsupported: This browser does not expose JavaScript heap usage.
       recording:
-        title: 上次录制
-        duration: 时长 {duration} 毫秒
-        limit: 录制会在 60 秒后停止。
+        title: Last recording
+        duration: Duration {duration} ms
+        limit: Recording stops after 60 seconds.
       overlay:
-        title: 性能
-        move: 移动性能浮窗
-        reset-position: 重置浮窗位置
-        record: 录制
-        stop: 停止
-        export: 导出上次录制
-        average: 平均
+        title: Performance
+        move: Move performance overlay
+        reset-position: Reset overlay position
+        record: Record
+        stop: Stop
+        export: Export last recording
+        average: avg
     markdown-stress:
       title: Markdown 压力测试
       description: 用大量聊天负载来测试 Markdown 的解析和渲染能力
