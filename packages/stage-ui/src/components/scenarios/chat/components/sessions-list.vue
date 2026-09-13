@@ -107,7 +107,7 @@ const expandedSessionId = shallowRef<string>()
                   :aria-expanded="open"
                   :tabindex="open ? -1 : 0"
                   :style="{ opacity: 'calc(1 - var(--swipe-progress, 0))' }"
-                  @click="toggle"
+                  @click="toggle()"
                 >
                   <span aria-hidden="true" :class="['i-solar:trash-bin-trash-outline size-5']" />
                 </GhostButton>

@@ -6,10 +6,10 @@ import type { RegisteredItem, SwipeActionsSelectEvent } from './context'
 import { Primitive, useForwardExpose } from 'reka-ui'
 import { computed, onBeforeUnmount, onMounted, toRef } from 'vue'
 
-import { injectSwipeActionsContext } from './context'
+import { injectSwipeActionsContext, injectSwipeActionsListContext } from './context'
 
 const props = withDefaults(defineProps<PrimitiveProps & {
-  /** Unique, stable action identity within its Root. */
+  /** Unique, stable action identity within its List. */
   value: string
   /** Prevents selection by pressing or full swipe. @default false */
   disabled?: boolean
@@ -21,7 +21,10 @@ const emit = defineEmits<{
 const context = injectSwipeActionsContext()
 const { forwardRef, currentElement } = useForwardExpose()
 const disabled = computed(() => props.disabled || context.disabled.value)
+const list = injectSwipeActionsListContext()
+const edge = computed<'left' | 'right'>(() => (list.side.value === 'end') === (context.direction.value === 'ltr') ? 'right' : 'left')
 const item: RegisteredItem = {
+  list,
   element: currentElement,
   value: toRef(props, 'value'),
   disabled: toRef(props, 'disabled'),
@@ -66,6 +69,6 @@ function keydown(event: KeyboardEvent) {
     :style="context.actionStyle(item)"
     @click="press" @keydown="keydown"
   >
-    <slot :takeover="takeover" :disabled="disabled" />
+    <slot :takeover="takeover" :disabled="disabled" :side="list.side.value" :edge="edge" />
   </Primitive>
 </template>

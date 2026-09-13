@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import BasicButton from './basic-button.vue'
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   /** Accessible name, including when the visible label is hidden. */
   label: string
   /** Iconify utility class for the action icon. */
@@ -10,9 +12,12 @@ withDefaults(defineProps<{
   showLabel?: boolean
   /** Item-local spring progress from SwipeActionsItem; other Items receive zero. @default 0 */
   takeover?: number
+  /** Physical List edge from the Item slot; keeps the expanded icon beside Content. @default 'right' */
+  edge?: 'left' | 'right'
   /** Classes for the colored surface. @default 'bg-neutral-500 text-white' */
   surfaceClass?: string
-}>(), { showLabel: true, takeover: 0, surfaceClass: 'bg-neutral-500 text-white' })
+}>(), { showLabel: true, takeover: 0, edge: 'right', surfaceClass: 'bg-neutral-500 text-white' })
+const iconDirection = computed(() => props.edge === 'right' ? 1 : -1)
 </script>
 
 <template>
@@ -25,7 +30,7 @@ withDefaults(defineProps<{
         <span
           data-swipe-action-icon aria-hidden="true"
           :class="['absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2', icon]"
-          :style="{ left: `calc(${50 * (1 - takeover)}% + ${(showLabel ? 22 : 32) * takeover}px)` }"
+          :style="{ left: `calc(${50 * (1 - iconDirection * takeover)}% + ${iconDirection * (showLabel ? 22 : 32) * takeover}px)` }"
         />
       </span>
       <span

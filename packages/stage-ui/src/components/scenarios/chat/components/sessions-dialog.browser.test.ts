@@ -286,8 +286,8 @@ describe('sessions dialog actions', () => {
       components: { SwipeActionsRoot, SwipeActionsList, SwipeActionsItem, SwipeActionsContent },
       setup: () => ({ disabled, selected }),
       template: `
-        <SwipeActionsRoot default-action="archive" style="width: 350px; height: 80px" @action="selected = $event">
-          <SwipeActionsList :action-width="72">
+        <SwipeActionsRoot style="width: 350px; height: 80px" @action="selected = $event">
+          <SwipeActionsList default-action="archive" :action-width="72">
             <SwipeActionsItem value="delete">Delete</SwipeActionsItem>
             <SwipeActionsItem value="archive" :disabled="disabled">Archive</SwipeActionsItem>
             <SwipeActionsItem value="pin">Pin</SwipeActionsItem>

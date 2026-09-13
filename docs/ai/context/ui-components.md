@@ -715,15 +715,18 @@ Exported from `packages/ui/src/composables/`:
 ## SwipeActions
 
 Composable trailing actions built on Reka UI's `Primitive` and `asChild`.
-Each Root owns one Content and one List. Items register automatically and use
-actual DOM order, including keyed reorders. Item values must be unique in a Root.
+Each Root owns one Content and up to two Lists, one per logical side. Items register
+automatically and follow DOM order. Values must be unique within their List.
 The container does not own conversation storage, undo, or business callbacks.
 
 | Part | Props | Default | Contract |
 |------|-------|---------|----------|
 | `SwipeActionsRoot` | `open` | `false` | `v-model:open` controls whether the actions stay revealed |
 | Root | `fullSwipe` | `true` | Allows long-swipe selection; false still permits ordinary reveal and Item presses |
-| Root | `defaultAction` | Last Item | Stable Item value for long swipe; missing or disabled defaults never select a substitute |
+| Root | `side` | `end` | `v-model:side` selects the revealed edge and retains it when closed |
+| Root | `dir` | Reka provider | Maps start/end to physical edges in LTR or RTL |
+| List | `side` | `end` | Logical edge: start is left in LTR and right in RTL |
+| List | `defaultAction` | Last Item in this List | Stable Item value for long swipe; missing or disabled defaults never select a substitute |
 | Root | `disabled` | `false` | Disables gestures and actions, not the content's own controls |
 | `SwipeActionsContent` | — | — | Translates the caller's opaque content and closes an open row before content activation |
 | `SwipeActionsList` | `actionWidth` | `88` | Settled width per Item in CSS pixels |
@@ -733,16 +736,20 @@ The container does not own conversation storage, undo, or business callbacks.
 
 All parts accept Reka `as` and `asChild`. Root, Content, and List default to
 `div`; Item defaults to a native `button`. With `asChild`, pass one child that
-forwards attributes and listeners. Keep Item DOM order equal to its visual order.
+forwards attributes and listeners. Items fan out toward their List edge; the last Item is outermost.
 
-Root emits `update:open(boolean)`, `interactionStart()`, and `action(value)`.
+Root emits `update:open(boolean)`, `update:side(start|end)`, `interactionStart()`,
+and `action(value, side)`. The side distinguishes equal values in different Lists.
 Item emits a cancelable `select` event before Root's action. Its detail contains
-`value` and `source` (`press` or `swipe`). `preventDefault()` cancels the action.
+`value`, `side`, and `source` (`press` or `swipe`). `preventDefault()` cancels the action.
 Handle business operations at Root or Item, not both, to avoid duplicate work.
 
-Root's default slot exposes `open`, `armed`, `committing`, `close`, and `toggle`.
-Content's slot exposes `open`, `close`, and `toggle`. Item's slot exposes its
-own `takeover` progress and effective `disabled` state. List has a default slot.
+Root's default slot exposes `open`, `side`, `armed`, `committing`, `close`, and `toggle`.
+Content exposes `open`, `side`, `close`, and `toggle`. Call `toggle('start')` or
+`toggle('end')` to reveal a specific List. With no argument, it toggles the selected side.
+Item exposes its `takeover`, `disabled`, logical `side`, and physical `edge` (`left|right`).
+Pass `takeover` and `edge` to SwipeActionButton to mirror the expanded icon.
+List has a default slot. Root and List expose `data-side="start|end"`.
 Root exposes `data-state="open|closed"`, `data-armed`, `data-committing`, and
 `data-disabled`. Item exposes `data-value`, `data-disabled`, and
 `data-state="idle|expanded"`. Hidden actions are inert. Root also exposes
@@ -754,13 +761,14 @@ with resistance and settles with a spring. Below the resting reveal, Items
 scale with Anime.js `outCubic` and fade with `outQuad`, including their icons
 and labels. Both curves use reveal distance, so reversing restores the same
 appearance without starting another animation. Items keep their spacing and
-move behind the content clip when the revealed strip is narrower than the group. Vertical gestures and pinch zoom
-stay native. Escape, outside clicks, and pointer cancellation never select an
+move behind the content clip when the revealed strip is narrower than the group.
+Vertical touch gestures and trackpad pinch zoom stay native. Crossing zero during
+a drag reveals the other List if it exists; a missing side stops at zero. Escape, outside clicks, and pointer cancellation never select an
 Item. Closing a focused action list returns focus to Content before making the List inert.
 A swipe suppresses accidental content clicks. Reduced motion skips springs.
 
-A long swipe expands the default Item and moves earlier Items behind the left
-clip. If the default is in the middle, later Items move past the right clip.
+A long swipe expands that List's default Item. Earlier Items move behind Content;
+later Items move past the outer clip. The layout mirrors for the opposite edge.
 Reversal restores the same layout. Selection occurs after release and completion
 of this full-width motion. Keep the combined settled width below the row width.
 Single actions arm at 65% of row width and disarm below 55%, with a 1.6-times
@@ -773,23 +781,26 @@ values cancels a pending gesture. The identity captured at release cannot be
 transferred to another Item. The List's DOM observer stops on unmount.
 
 ```vue
-<SwipeActionsRoot v-model:open="open" default-action="pin" @action="handleAction">
+<SwipeActionsRoot v-model:open="open" v-model:side="side" @action="handleAction">
   <SwipeActionsContent>
     <ConversationRow />
   </SwipeActionsContent>
-  <SwipeActionsList :action-width="72">
+  <SwipeActionsList side="start">
+    <SwipeActionsItem value="archive">Archive</SwipeActionsItem>
+  </SwipeActionsList>
+  <SwipeActionsList side="end" default-action="pin" :action-width="72">
     <SwipeActionsItem
       v-for="action in actions" :key="action.id"
-      v-slot="{ takeover }" :value="action.id" as-child
+      v-slot="{ takeover, edge }" :value="action.id" as-child
     >
-      <SwipeActionButton :label="action.label" :icon="action.icon" :takeover="takeover" />
+      <SwipeActionButton :label="action.label" :icon="action.icon" :takeover="takeover" :edge="edge" />
     </SwipeActionsItem>
   </SwipeActionsList>
 </SwipeActionsRoot>
 ```
 
 The stage-ui Histoire story **Misc → Swipe Actions** renders one composed row
-with three Items. The Controls panel toggles label visibility.
+with two start actions and three end actions. The Controls panel toggles label visibility.
 
 ## SwipeActionButton
 
@@ -802,6 +813,7 @@ label layout, and takeover appearance. The gesture container remains unstyled.
 | `icon` | `string` | Required | Iconify utility class |
 | `showLabel` | `boolean` | `true` | When false, removes text and fills its area with the action surface |
 | `takeover` | `number` | `0` | Item slot progress from 0 to 1; each Item supplies its own value |
+| `edge` | `left \| right` | `right` | Physical edge from the Item slot; mirrors the expanded icon |
 | `surfaceClass` | `string` | `bg-neutral-500 text-white` | Surface color classes |
 
 Wrap the button with `SwipeActionsItem as-child` and handle Root action or Item select.

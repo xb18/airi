@@ -60,7 +60,7 @@ https://histoire.dev/
 pnpm -F @proj-airi/stage-ui run story:dev
 ```
 
-The **Misc → Swipe Actions** story renders one row with three actions. Its **Show labels** control switches between
+The **Misc → Swipe Actions** story renders one row with two start actions and three end actions. Its **Show labels** control switches between
 text labels and surfaces that fill the available height. Use this story to
 compare gesture presentation, not conversation storage behavior.
 

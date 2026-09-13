@@ -2,20 +2,20 @@
 import type { PrimitiveProps } from 'reka-ui'
 import type { CSSProperties } from 'vue'
 
-import type { RegisteredItem, SwipeActionsSelectEvent } from './context'
+import type { RegisteredItem, RegisteredList, SwipeActionsSelectEvent, SwipeActionsSide } from './context'
 
 import { onClickOutside, useEventListener, usePointerSwipe, usePreferredReducedMotion, useRafFn, useTimeoutFn } from '@vueuse/core'
 import { eases } from 'animejs'
-import { Primitive, useForwardExpose } from 'reka-ui'
-import { computed, shallowReactive, shallowRef, watch } from 'vue'
+import { Primitive, useDirection, useForwardExpose } from 'reka-ui'
+import { computed, shallowReactive, shallowRef, toRef, watch } from 'vue'
 
 import { provideSwipeActionsContext } from './context'
 
 const props = withDefaults(defineProps<PrimitiveProps & {
   /** Allows the default action to run after a long swipe. @default true */
   fullSwipe?: boolean
-  /** Stable Item value for long swipe. Omit to use the last Item in DOM order. */
-  defaultAction?: string
+  /** Resolves logical start/end edges. @default Reka direction provider, or 'ltr'. */
+  dir?: 'ltr' | 'rtl'
   /** Disables action gestures and selection, not the content's own controls. @default false */
   disabled?: boolean
 }>(), { as: 'div', fullSwipe: true, disabled: false })
@@ -24,20 +24,29 @@ const emit = defineEmits<{
   /** Lets a list close another row when horizontal input takes ownership. */
   interactionStart: []
   /** Stable Item value, emitted once after an uncanceled press or committed swipe. */
-  action: [value: string]
+  action: [value: string, side: SwipeActionsSide]
 }>()
 defineSlots<{
-  default: (props: { open: boolean, armed: boolean, committing: boolean, close: () => void, toggle: () => void }) => unknown
+  default: (props: { open: boolean, side: SwipeActionsSide, armed: boolean, committing: boolean, close: () => void, toggle: (side?: SwipeActionsSide) => void }) => unknown
 }>()
 /** The parent can control this state to keep only one row open. @default false */
 const open = defineModel<boolean>('open', { default: false })
+/** Edge revealed by gestures or toggle. It remains selected when closed. @default 'end' */
+const sideModel = defineModel<SwipeActionsSide>('side', { default: 'end' })
+// A controlled prop updates on the parent's render; pointer geometry needs the
+// selected edge in the same event, before that render reaches this component.
+const side = shallowRef(sideModel.value)
+const direction = useDirection(toRef(props, 'dir'))
+const lists = shallowReactive(new Set<RegisteredList>())
+const activeList = computed(() => [...lists].find(list => list.side.value === side.value))
+const sign = computed(() => (side.value === 'end') === (direction.value === 'ltr') ? 1 : -1)
 const { forwardRef, currentElement: root } = useForwardExpose()
 const reducedMotion = usePreferredReducedMotion()
-const actionWidth = shallowRef(88)
-const actionGap = shallowRef(8)
+const actionWidth = computed(() => activeList.value?.actionWidth.value ?? 88)
+const actionGap = computed(() => activeList.value?.gap.value ?? 8)
 const items = shallowReactive(new Set<RegisteredItem>())
 const orderVersion = shallowRef(0)
-const orderedItems = computed(() => {
+const allOrderedItems = computed(() => {
   void orderVersion.value
   return [...items].sort((a, b) => {
     if (a.element.value === b.element.value)
@@ -45,16 +54,19 @@ const orderedItems = computed(() => {
     return a.element.value.compareDocumentPosition(b.element.value) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
   })
 })
+const orderedItems = computed(() => allOrderedItems.value.filter(item => item.list === activeList.value))
 const primary = computed(() => {
-  const item = props.defaultAction === undefined
+  const defaultAction = activeList.value?.defaultAction.value
+  const item = defaultAction === undefined
     ? orderedItems.value.at(-1)
-    : orderedItems.value.find(item => item.value.value === props.defaultAction)
+    : orderedItems.value.find(item => item.value.value === defaultAction)
   // An explicit missing/disabled default never falls through to another action.
   return item && !item.disabled.value && !props.disabled ? item : undefined
 })
 const actionCount = computed(() => orderedItems.value.length)
 const settledWidth = computed(() => actionWidth.value * actionCount.value)
 const reveal = shallowRef(open.value ? settledWidth.value : 0)
+const offset = computed(() => reveal.value * sign.value)
 const takeover = shallowRef(0)
 let takeoverVelocity = 0
 const armed = shallowRef(false)
@@ -80,7 +92,8 @@ const target = computed(() => {
 let intent: 'pending' | 'horizontal' | 'vertical' = 'pending'
 let pointerActive = false
 let wheelActive = false
-let startTravel = 0
+let startOffset = 0
+let changingSide = false
 let rawTravel = 0
 let stretchLimit = actionWidth.value
 let velocity = 0
@@ -107,7 +120,25 @@ const { distanceX, distanceY } = usePointerSwipe(root, {
 useEventListener(root, ['pointerup', 'pointercancel'], endSwipe)
 useEventListener(root, 'wheel', moveWheel, { passive: false })
 onClickOutside(root, close)
-watch([open, settledWidth, reducedMotion], settle)
+watch([open, settledWidth, reducedMotion], () => {
+  if (!changingSide)
+    settle()
+}, { flush: 'sync' })
+watch(sideModel, (value) => {
+  if (value !== side.value) {
+    side.value = value
+    restoreContentFocus(false)
+    reveal.value = 0
+    cancelGesture()
+  }
+}, { flush: 'sync' })
+watch(direction, () => {
+  if (changingSide)
+    return
+  restoreContentFocus(false)
+  reveal.value = 0
+  cancelGesture()
+}, { flush: 'sync' })
 // Restore focus before List applies inert, including parent-controlled closes.
 watch(open, restoreContentFocus, { flush: 'sync' })
 
@@ -191,14 +222,47 @@ function close() {
   settle()
 }
 
-function toggle() {
-  if (committing.value || props.disabled || !actionCount.value)
+function toggle(requestedSide: SwipeActionsSide = side.value) {
+  if (committing.value || props.disabled || !hasSide(requestedSide))
     return
-  if (!open.value)
+  const switched = requestedSide !== side.value
+  if (!open.value || switched)
     emit('interactionStart')
-  open.value = !open.value
+  if (switched)
+    selectSide(requestedSide)
+  open.value = switched || !open.value
   velocity = 0
   settle()
+}
+
+function hasSide(value: SwipeActionsSide) {
+  return [...items].some(item => item.list.side.value === value && lists.has(item.list))
+}
+
+// Side changes at zero preserve the active gesture. External model changes
+// instead cancel it, so an in-flight full swipe cannot select the other List.
+function selectSide(value: SwipeActionsSide) {
+  restoreContentFocus(false)
+  changingSide = true
+  side.value = value
+  sideModel.value = value
+  changingSide = false
+  spring.pause()
+  armed.value = false
+  takeover.value = 0
+  takeoverVelocity = 0
+  velocity = 0
+  inputVelocity = 0
+  reveal.value = 0
+  dragTarget.value = 0
+  stretchLimit = Math.max(1, rowWidth.value - settledWidth.value - 12)
+}
+
+function followOffset(value: number) {
+  const requestedSide = (value >= 0) === (direction.value === 'ltr') ? 'end' : 'start'
+  if (requestedSide !== side.value && hasSide(requestedSide))
+    selectSide(requestedSide)
+  followTravel(Math.max(0, value * sign.value))
 }
 
 function captureTravel() {
@@ -212,7 +276,7 @@ function captureTravel() {
   rawTravel = reveal.value <= settledWidth.value
     ? reveal.value
     : settledWidth.value + excess * stretchLimit / Math.max(1, stretchLimit - excess)
-  startTravel = rawTravel
+  startOffset = rawTravel * sign.value
   velocity = 0
   inputVelocity = 0
   lastMoveAt = performance.now()
@@ -249,7 +313,7 @@ function followTravel(travel: number) {
 
 /** Triggering workflow: usePointerSwipe -> pointerdown -> beginSwipe -> pause spring. */
 function beginSwipe() {
-  if (committing.value || props.disabled || !actionCount.value)
+  if (committing.value || props.disabled || !items.size)
     return
   intent = 'pending'
   pointerActive = true
@@ -281,7 +345,7 @@ function moveSwipe() {
   if (intent !== 'horizontal')
     return
   suppressClick ||= horizontal > 4
-  followTravel(startTravel + distanceX.value)
+  followOffset(startOffset + distanceX.value)
 }
 
 /**
@@ -326,7 +390,7 @@ function release() {
  * remain native. Momentum events remain part of the same wheel sequence.
  */
 function moveWheel(event: WheelEvent) {
-  if (pointerActive || committing.value || props.disabled || !actionCount.value || event.ctrlKey)
+  if (pointerActive || committing.value || props.disabled || !items.size || event.ctrlKey)
     return
   if (!wheelActive) {
     intent = Math.abs(event.deltaX) > Math.abs(event.deltaY) * 1.25 ? 'horizontal' : 'vertical'
@@ -344,7 +408,7 @@ function moveWheel(event: WheelEvent) {
   if (event.cancelable)
     event.preventDefault()
   const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? (root.value?.clientWidth ?? actionWidth.value) : 1
-  followTravel(rawTravel + event.deltaX * unit)
+  followOffset(rawTravel * sign.value + event.deltaX * unit)
 }
 
 /** Triggering workflow: wheel idle timer -> endWheel -> release or native-scroll completion. */
@@ -383,9 +447,16 @@ function closeContent(event: MouseEvent) {
  * unregisters before unmount. Changing items/defaults cancels an in-flight swipe
  * rather than transferring a pending action to a different item.
  */
+function registerList(list: RegisteredList) {
+  if ([...lists].some(existing => existing.side.value === list.side.value))
+    throw new Error('SwipeActionsRoot supports one List per side.')
+  lists.add(list)
+  return () => lists.delete(list)
+}
+
 function register(item: RegisteredItem) {
-  if ([...items].some(existing => existing.value.value === item.value.value))
-    throw new Error('SwipeActionsItem values must be unique within a Root.')
+  if ([...items].some(existing => existing.list === item.list && existing.value.value === item.value.value))
+    throw new Error('SwipeActionsItem values must be unique within a List.')
   items.add(item)
   return () => items.delete(item)
 }
@@ -399,16 +470,17 @@ function dispatchAction(item: RegisteredItem, source: 'press' | 'swipe') {
   if (!items.has(item) || item.disabled.value || props.disabled)
     return false
   const value = item.value.value
-  const event: SwipeActionsSelectEvent = new CustomEvent('swipe-actions.select', { cancelable: true, detail: { value, source } })
+  const selectedSide = item.list.side.value
+  const event: SwipeActionsSelectEvent = new CustomEvent('swipe-actions.select', { cancelable: true, detail: { value, source, side: selectedSide } })
   item.select(event)
   if (event.defaultPrevented)
     return false
-  emit('action', value)
+  emit('action', value, selectedSide)
   return true
 }
 
 function activate(item: RegisteredItem) {
-  if (committing.value)
+  if (committing.value || item.list !== activeList.value)
     return
   if (dispatchAction(item, 'press'))
     close()
@@ -430,6 +502,8 @@ function itemTakeover(item: RegisteredItem) {
  * explicit default move past the right clip. The default fills the same strip.
  */
 function actionStyle(item: RegisteredItem): CSSProperties {
+  if (item.list !== activeList.value)
+    return { display: 'none' }
   const index = orderedItems.value.indexOf(item)
   const selected = pendingItem ?? primary.value
   const selectedIndex = selected ? orderedItems.value.indexOf(selected) : -1
@@ -453,7 +527,7 @@ function actionStyle(item: RegisteredItem): CSSProperties {
     position: 'absolute',
     top: '0',
     height: '100%',
-    left: `${groupOffset + left + width / 2 - layoutWidth / 2}px`,
+    [sign.value === 1 ? 'left' : 'right']: `${groupOffset + left + width / 2 - layoutWidth / 2}px`,
     width: `${layoutWidth}px`,
     transform: `scale(${scale})`,
     transformOrigin: 'center',
@@ -462,8 +536,13 @@ function actionStyle(item: RegisteredItem): CSSProperties {
 }
 
 watch([
-  () => JSON.stringify(orderedItems.value.map(item => [item.value.value, item.disabled.value])),
-  () => props.defaultAction,
+  () => {
+    void orderVersion.value
+    return JSON.stringify([
+      [...lists].map(list => [list.side.value, list.actionWidth.value, list.gap.value, list.defaultAction.value]),
+      allOrderedItems.value.map(item => [item.list.side.value, item.value.value, item.disabled.value]),
+    ])
+  },
   () => props.disabled,
   () => props.fullSwipe,
 ], cancelGesture, { flush: 'sync' })
@@ -473,8 +552,10 @@ provideSwipeActionsContext({
   armed,
   committing,
   reveal,
-  actionWidth,
-  actionGap,
+  side,
+  direction,
+  offset,
+  registerList,
   disabled: computed(() => props.disabled),
   register,
   refreshOrder,
@@ -498,7 +579,7 @@ function dismissActions(event: KeyboardEvent) {
 <template>
   <Primitive
     :ref="forwardRef" :as="as" :as-child="asChild"
-    data-swipe-actions
+    data-swipe-actions :data-side="side" :dir="direction"
     :data-state="open ? 'open' : 'closed'"
     :data-armed="armed" :data-committing="committing"
     :data-disabled="disabled ? '' : undefined"
@@ -507,6 +588,6 @@ function dismissActions(event: KeyboardEvent) {
     @click.capture="consumeSwipeClick"
     @keydown="dismissActions"
   >
-    <slot :open="open" :armed="armed" :committing="committing" :close="close" :toggle="toggle" />
+    <slot :side="side" :open="open" :armed="armed" :committing="committing" :close="close" :toggle="toggle" />
   </Primitive>
 </template>

@@ -6,7 +6,7 @@ import { Primitive } from 'reka-ui'
 import { injectSwipeActionsContext } from './context'
 
 withDefaults(defineProps<PrimitiveProps>(), { as: 'div' })
-const { open, reveal, close, toggle, closeContent } = injectSwipeActionsContext()
+const { open, side, offset, close, toggle, closeContent } = injectSwipeActionsContext()
 </script>
 
 <template>
@@ -14,9 +14,9 @@ const { open, reveal, close, toggle, closeContent } = injectSwipeActionsContext(
     :as="as" :as-child="asChild"
     data-swipe-actions-content
     tabindex="-1"
-    :style="{ position: 'relative', zIndex: 1, transform: `translate3d(${-reveal}px, 0, 0)` }"
+    :style="{ position: 'relative', zIndex: 1, transform: `translate3d(${-offset}px, 0, 0)` }"
     @click.capture="closeContent"
   >
-    <slot :open="open" :close="close" :toggle="toggle" />
+    <slot :side="side" :open="open" :close="close" :toggle="toggle" />
   </Primitive>
 </template>
