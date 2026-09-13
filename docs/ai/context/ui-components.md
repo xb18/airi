@@ -756,7 +756,8 @@ and labels. Both curves use reveal distance, so reversing restores the same
 appearance without starting another animation. Items keep their spacing and
 move behind the content clip when the revealed strip is narrower than the group. Vertical gestures and pinch zoom
 stay native. Escape, outside clicks, and pointer cancellation never select an
-Item. A swipe suppresses accidental content clicks. Reduced motion skips springs.
+Item. Closing a focused action list returns focus to Content before making the List inert.
+A swipe suppresses accidental content clicks. Reduced motion skips springs.
 
 A long swipe expands the default Item and moves earlier Items behind the left
 clip. If the default is in the middle, later Items move past the right clip.

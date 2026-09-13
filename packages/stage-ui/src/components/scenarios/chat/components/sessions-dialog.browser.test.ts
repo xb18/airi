@@ -89,6 +89,37 @@ function createHarness(rows = [
 }
 
 describe('sessions dialog actions', () => {
+  // https://github.com/moeru-ai/airi/pull/2536#discussion_r3999100810
+  it('restores focus to visible content after selecting a retained action', async () => {
+    // ROOT CAUSE:
+    // Closing made the List inert while its selected action still held focus.
+    // Restore focus before hiding the List, including controlled closes.
+    const open = ref(true)
+    const screen = await render(defineComponent({
+      components: { SwipeActionsRoot, SwipeActionsContent, SwipeActionsList, SwipeActionsItem },
+      setup: () => ({ open }),
+      template: `
+        <SwipeActionsRoot v-model:open="open" style="width: 350px; height: 80px">
+          <SwipeActionsContent>Content</SwipeActionsContent>
+          <SwipeActionsList><SwipeActionsItem value="pin">Pin</SwipeActionsItem></SwipeActionsList>
+        </SwipeActionsRoot>
+      `,
+    }))
+    const pin = screen.getByRole('button', { name: 'Pin', exact: true })
+    await expect.element(pin).toBeVisible()
+    const row = pin.element().closest<HTMLElement>('[data-swipe-actions]')!
+    const content = row.querySelector<HTMLElement>('[data-swipe-actions-content]')!
+    expect(getComputedStyle(row).touchAction).toBe('pan-y')
+    await pin.click()
+    await expect.poll(() => open.value).toBe(false)
+    expect(document.activeElement).toBe(content)
+    open.value = true
+    await expect.element(pin).toBeVisible()
+    pin.element().focus()
+    open.value = false
+    await expect.poll(() => document.activeElement).toBe(content)
+  })
+
   it('fills the label area when labels are hidden and keeps the accessible name', async () => {
     const screen = await render(defineComponent({
       components: { SwipeActionButton },

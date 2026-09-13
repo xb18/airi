@@ -13,6 +13,7 @@ const { open, reveal, close, toggle, closeContent } = injectSwipeActionsContext(
   <Primitive
     :as="as" :as-child="asChild"
     data-swipe-actions-content
+    tabindex="-1"
     :style="{ position: 'relative', zIndex: 1, transform: `translate3d(${-reveal}px, 0, 0)` }"
     @click.capture="closeContent"
   >

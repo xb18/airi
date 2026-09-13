@@ -108,6 +108,8 @@ useEventListener(root, ['pointerup', 'pointercancel'], endSwipe)
 useEventListener(root, 'wheel', moveWheel, { passive: false })
 onClickOutside(root, close)
 watch([open, settledWidth, reducedMotion], settle)
+// Restore focus before List applies inert, including parent-controlled closes.
+watch(open, restoreContentFocus, { flush: 'sync' })
 
 /**
  * Triggering workflow: useRafFn -> animation frame -> advanceSpring -> reveal.
@@ -169,6 +171,16 @@ function settle() {
     return
   }
   spring.resume()
+}
+
+/** Triggering workflow: open model closes -> move focus out of the hidden List. */
+function restoreContentFocus(isOpen: boolean) {
+  if (isOpen || !root.value)
+    return
+  const active = root.value.ownerDocument.activeElement
+  if (!active?.closest('[data-swipe-actions-list]') || active.closest('[data-swipe-actions]') !== root.value)
+    return
+  root.value.querySelector<HTMLElement>('[data-swipe-actions-content]')?.focus({ preventScroll: true })
 }
 
 function close() {

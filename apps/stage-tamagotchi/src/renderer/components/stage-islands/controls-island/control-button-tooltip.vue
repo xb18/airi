@@ -28,7 +28,7 @@ const resolvedSide = computed<NonNullable<TooltipContentProps['side']>>(() => {
     :skip-delay-duration="0"
   >
     <TooltipRoot>
-      <TooltipTrigger>
+      <TooltipTrigger as-child>
         <slot />
       </TooltipTrigger>
       <TooltipPortal>
