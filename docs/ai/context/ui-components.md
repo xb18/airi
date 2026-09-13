@@ -711,3 +711,110 @@ Exported from `packages/ui/src/composables/`:
 
 - **`useDeferredMount()`** — Defers component mounting (useful for heavy components).
 - **`useTheme()`** — Theme management composable.
+
+## SwipeActions
+
+Composable trailing actions built on Reka UI's `Primitive` and `asChild`.
+Each Root owns one Content and one List. Items register automatically and use
+actual DOM order, including keyed reorders. Item values must be unique in a Root.
+The container does not own conversation storage, undo, or business callbacks.
+
+| Part | Props | Default | Contract |
+|------|-------|---------|----------|
+| `SwipeActionsRoot` | `open` | `false` | `v-model:open` controls whether the actions stay revealed |
+| Root | `fullSwipe` | `true` | Allows long-swipe selection; false still permits ordinary reveal and Item presses |
+| Root | `defaultAction` | Last Item | Stable Item value for long swipe; missing or disabled defaults never select a substitute |
+| Root | `disabled` | `false` | Disables gestures and actions, not the content's own controls |
+| `SwipeActionsContent` | — | — | Translates the caller's opaque content and closes an open row before content activation |
+| `SwipeActionsList` | `actionWidth` | `88` | Settled width per Item in CSS pixels |
+| List | `gap` | `8` | Maximum gap between Items; grows with reveal |
+| `SwipeActionsItem` | `value` | Required | Stable string identity emitted for this action |
+| Item | `disabled` | `false` | Disables pointer, keyboard, and long-swipe selection |
+
+All parts accept Reka `as` and `asChild`. Root, Content, and List default to
+`div`; Item defaults to a native `button`. With `asChild`, pass one child that
+forwards attributes and listeners. Keep Item DOM order equal to its visual order.
+
+Root emits `update:open(boolean)`, `interactionStart()`, and `action(value)`.
+Item emits a cancelable `select` event before Root's action. Its detail contains
+`value` and `source` (`press` or `swipe`). `preventDefault()` cancels the action.
+Handle business operations at Root or Item, not both, to avoid duplicate work.
+
+Root's default slot exposes `open`, `armed`, `committing`, `close`, and `toggle`.
+Content's slot exposes `open`, `close`, and `toggle`. Item's slot exposes its
+own `takeover` progress and effective `disabled` state. List has a default slot.
+Root exposes `data-state="open|closed"`, `data-armed`, `data-committing`, and
+`data-disabled`. Item exposes `data-value`, `data-disabled`, and
+`data-state="idle|expanded"`. Hidden actions are inert. Root also exposes
+`--swipe-progress`, rising from 0 to 1 over the first 32px of reveal, for fading
+a resting action trigger.
+
+Horizontal pointer or trackpad input reveals the actions. The surface stretches
+with resistance and settles with a spring. Below the resting reveal, Items
+scale with Anime.js `outCubic` and fade with `outQuad`, including their icons
+and labels. Both curves use reveal distance, so reversing restores the same
+appearance without starting another animation. Items keep their spacing and
+move behind the content clip when the revealed strip is narrower than the group. Vertical gestures and pinch zoom
+stay native. Escape, outside clicks, and pointer cancellation never select an
+Item. A swipe suppresses accidental content clicks. Reduced motion skips springs.
+
+A long swipe expands the default Item and moves earlier Items behind the left
+clip. If the default is in the middle, later Items move past the right clip.
+Reversal restores the same layout. Selection occurs after release and completion
+of this full-width motion. Keep the combined settled width below the row width.
+Single actions arm at 65% of row width and disarm below 55%, with a 1.6-times
+item-width minimum. Multiple actions also require total width plus 32px to arm
+or plus 8px to disarm. These are prototype parameters, not Apple measurements.
+
+A committed surface stays visible for 500ms while its owner removes the row.
+A retained row then resets. Reordering, removing, disabling, or changing action
+values cancels a pending gesture. The identity captured at release cannot be
+transferred to another Item. The List's DOM observer stops on unmount.
+
+```vue
+<SwipeActionsRoot v-model:open="open" default-action="pin" @action="handleAction">
+  <SwipeActionsContent>
+    <ConversationRow />
+  </SwipeActionsContent>
+  <SwipeActionsList :action-width="72">
+    <SwipeActionsItem
+      v-for="action in actions" :key="action.id"
+      v-slot="{ takeover }" :value="action.id" as-child
+    >
+      <SwipeActionButton :label="action.label" :icon="action.icon" :takeover="takeover" />
+    </SwipeActionsItem>
+  </SwipeActionsList>
+</SwipeActionsRoot>
+```
+
+The stage-ui Histoire story **Misc → Swipe Actions** renders one composed row
+with three Items. The Controls panel toggles label visibility.
+
+## SwipeActionButton
+
+Optional presentation for a `SwipeActionsItem`. It owns the surface, icon,
+label layout, and takeover appearance. The gesture container remains unstyled.
+
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `label` | `string` | Required | Visible text and accessible button name |
+| `icon` | `string` | Required | Iconify utility class |
+| `showLabel` | `boolean` | `true` | When false, removes text and fills its area with the action surface |
+| `takeover` | `number` | `0` | Item slot progress from 0 to 1; each Item supplies its own value |
+| `surfaceClass` | `string` | `bg-neutral-500 text-white` | Surface color classes |
+
+Wrap the button with `SwipeActionsItem as-child` and handle Root action or Item select.
+The button disables CSS motion that would otherwise lag behind the gesture.
+Hidden labels retain the accessible name. Icon-only buttons fill the available
+height inside the same vertical padding and keep the icon centered vertically.
+The component provides no slots or custom events; button attributes and listeners
+pass through to the underlying `BasicButton`.
+
+```vue
+<SwipeActionButton
+  :label="action.label"
+  :icon="action.icon"
+  :show-label="false"
+  :takeover="takeover"
+/>
+```
