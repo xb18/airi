@@ -15,12 +15,15 @@ function createWidgetsManagerStub() {
 }
 
 describe('createBuiltInExtensionKitRuntime', () => {
-  it('exposes one declaration for each built-in Host Kit', () => {
+  it('registers one Provider for each built-in Host Kit', () => {
     const runtime = createBuiltInExtensionKitRuntime({
       widgetsManager: createWidgetsManagerStub(),
     })
+    const host = new ExtensionHost()
 
-    expect(runtime.hostProvidedKits).toEqual([
+    runtime.registerHostKits(host)
+
+    expect(host.listKitProviders().map(({ id, version }) => ({ id, version }))).toEqual([
       { id: 'kit.gamelet', version: '1.0.0' },
       { id: 'kit.tool', version: '1.0.0' },
       { id: 'kit.widget', version: '1.0.0' },
