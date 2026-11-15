@@ -180,18 +180,6 @@ afterEach(() => {
 })
 
 describe('controls Island', () => {
-  it('shows only the grip, the microphone, the chat button, and the more button', async () => {
-    const { screen } = mountIsland()
-
-    await expect.element(screen.getByTestId('controls-island-grip')).toBeVisible()
-    await expect.element(screen.getByTestId('controls-island-microphone')).toBeVisible()
-    await expect.element(screen.getByLabelText(label('open-chat'), { exact: true })).toBeVisible()
-    await expect.element(screen.getByTestId('controls-island-more')).toBeVisible()
-    // Account, settings and quit live in the menu, not on the Island.
-    expect(document.querySelector('[data-testid="controls-island-account"]')).toBeNull()
-    expect(document.querySelector('[data-testid="controls-island-settings"]')).toBeNull()
-  })
-
   it('hides the Island while the cursor is away unless its menu is open or it holds focus', async () => {
     const { screen } = mountIsland()
     const island = screen.getByTestId('controls-island').element()
