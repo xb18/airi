@@ -83,7 +83,6 @@ vi.mock('@proj-airi/stage-ui/stores/auth', async () => {
 })
 
 const i18n = createI18n({ legacy: false, locale: 'en', messages: { en } })
-const label = (key: string) => i18n.global.t(`tamagotchi.stage.controls-island.${key}`)
 
 function card(name: string): AiriCard {
   return {
